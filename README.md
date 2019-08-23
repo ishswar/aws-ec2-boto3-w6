@@ -18,6 +18,8 @@
 <details>
   <summary>Click to see</summary>
    Code
+   ```BASH
+   ```
 </details>
 
 
