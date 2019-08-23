@@ -270,7 +270,7 @@ Public IP
 
 ## Output video 
 
-![Demo](https://raw.githubusercontent.com/ishswar/aws-ec2-boto3-w6/blob/master/boto3_ec2_demo.gif)
+![Demo](https://github.com/ishswar/aws-ec2-boto3-w6/blob/master/boto3_ec2_demo.gif?raw=true)
 
 ### Screen captures  
     Screen grab of Security Group and EC2 instances while they are getting created
