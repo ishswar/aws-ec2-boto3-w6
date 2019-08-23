@@ -17,9 +17,7 @@
 
 <details>
   <summary>Click to see</summary>
-``` PYTHON
-   
-```
+   Code
 </details>
 
 
