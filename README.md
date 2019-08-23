@@ -2,7 +2,7 @@
 
 ## Introduction 
 
-   This is sample Boto3 sample code for creating,managing and destroying AWS EC2 instance.
+   This is Boto3 sample code for creating,managing and destroying AWS EC2 instance.
    
    Code has 6 main blocks 
    
