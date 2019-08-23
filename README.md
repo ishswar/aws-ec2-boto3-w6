@@ -275,3 +275,9 @@ Public IP
 ### Screen captures  
     Screen grab of Security Group and EC2 instances while they are getting created
 
+#### Security Group 
+![Security Group](https://github.com/ishswar/aws-ec2-boto3-w6/blob/master/security_Group.jpg?raw=true)
+
+#### EC2 instance (capture was taken after instance was destroyed)
+
+![Instance listing](https://github.com/ishswar/aws-ec2-boto3-w6/blob/master/ec2_instance.jpg?raw=true)
