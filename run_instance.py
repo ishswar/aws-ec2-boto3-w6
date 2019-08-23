@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 from datetime import datetime
-import json
 import subprocess
-import sys
 import time
-from pathlib import Path
 
-import boto3
 
 ###
-# Helper method
+# Helper methods
 ###
-from aswTestConnection import get_aws_connection
+from awsGetConnection import get_aws_connection
 
 
 def banner(text, ch='=', length=78):
@@ -21,13 +17,17 @@ def banner(text, ch='=', length=78):
 
 
 def printlog(text):
-    strformat = "%Y-%m-%d %H:%M"
+    strformat = "%Y-%m-%d %H:%M:%S"
     print(datetime.strftime(datetime.now(), strformat), text)
 
 
+print(banner("Getting boto3 session for AWS"))
+
+# Get boto3 session
+# This will also check of connectivity
 session = get_aws_connection()
 
-# 'Tags': [{'Key': 'Name', 'Value': 'ucsc-vpc'}]}
+# Constance
 
 region = 'us-west-2'
 vpc = 'ucsc-vpc'
@@ -39,8 +39,9 @@ insttype = 't2.micro'
 sshkeypair = 'pshah2019v2'  # use your own ssh keypair
 numinstances = 1
 
-# http://boto3.readthedocs.io/en/latest/reference/core/boto3.htmlec2c=boto3.client('ec2',region_name=region)
 ec2c = session.client('ec2', region_name=region)
+
+print(banner("Getting VPC and Subnet to use"))
 
 # Get UCSC vpc that we have created
 resp = ec2c.describe_vpcs(Filters=[{'Name': 'tag:Name', 'Values': [vpc]}])
@@ -49,17 +50,20 @@ vpcidtouse = resp['Vpcs'][0]['VpcId']
 # Get VPC Id and get first ucsc subnet
 subnetlist = ec2c.describe_subnets(
     Filters=[{'Name': 'vpc-id', 'Values': [vpcidtouse]}, {'Name': 'tag:Name', 'Values': [vpc_subnet]}])
-# uncomment this to see format of response from describe_subnets
-#printlog(json.dumps(subnetlist, indent=2, separators=(',', ':')))
 
 if len(subnetlist) > 0:
     subnet_to_use = subnetlist['Subnets'][0];
-    printlog("Subnet to use is :")
-    printlog(subnet_to_use)
+    #printlog("Subnet to use is :")
+    #printlog(subnet_to_use)
     subnetid = subnetlist['Subnets'][0]['SubnetId']
-
+    printlog("Subnet ID: " + str(subnet_to_use))
+else:
+    printlog("We could not find subnet to use - need to invastigate this error")
+    exit(-2)
 
 secgrpid = ''
+
+print(banner("Creating/getting Security Group information"))
 
 # Get Security group that we are about to create - if it exists then no point creating it again
 # Since our security group is non-default VPC we need to use Filters to get that
@@ -85,7 +89,7 @@ if not secgrpid:
         secgrptouse = secgroups["SecurityGroups"][0]
         secgrpid = secgrptouse['GroupId']
     except:
-        printlog('no security group, will create security group' + secgrpname)
+        printlog('No security group named ['+secgrpname+'] found, will create new security group' + secgrpname)
 
     secgrptouse = ec2c.create_security_group(GroupName=secgrpname, Description='aws class open ssh,http,https',
                                              VpcId=vpcidtouse)
@@ -105,6 +109,7 @@ else:
 
 secgrpidlist = [secgrpid]
 
+print(banner("Starting EC2 instance"))
 
 printlog("About to create a EC2 instance with :\n" +
          "AMI ID: " + amiid + "\n" +
@@ -149,7 +154,7 @@ while bIsRunning == False:
     if instatus == 'ok':
         bIsRunning = True
     else:
-        time.sleep(5)
+        time.sleep(45) # Wait for 20 seconds before next poll
         continue
 
 printlog('Checking if instance has Public IP - else we will wait for it be assigned')
@@ -161,6 +166,7 @@ while bGotIp == False:
     publicip = inst.get('PublicIpAddress')
     if not publicip:
         printlog('do not have ip address yet')
+        time.sleep(20)
         continue
     else:
         bGotIp = True
@@ -173,11 +179,17 @@ remoteCommandToRunOnInstance = 'echo \"Inside EC2 instance\";echo \"Machine info
                                'name:\";hostname;echo ' \
                                '\"IP Address\";hostname -i;echo "Public IP";curl -s ipecho.net/plain; echo;'
 
-printlog("Command we are using is \n\rssh -i ../../AWS/ubuntuvm/pshah2019v2.pem ec2-user@"+publicip+" \""+ remoteCommandToRunOnInstance + "\"")
-subprocess.call('ssh -i ../../AWS/ubuntuvm/pshah2019v2.pem ec2-user@'+publicip+' "'+remoteCommandToRunOnInstance+'"', shell=True)
+printlog("Command we are using is \n\rssh -i ../../../../AWS/ubuntuvm/pshah2019v2.pem ec2-user@"+publicip+" \""+ remoteCommandToRunOnInstance + "\"")
+banner("SSH login")
+subprocess.call('ssh -i ../../../../AWS/ubuntuvm/pshah2019v2.pem ec2-user@'+publicip+' "'+remoteCommandToRunOnInstance+'"', shell=True)
 
-# resp=ec2c.stop_instances(InstanceIds=[instid])
-# printlog(json.dumps(resp,indent=2,separators=(',',':')))
 
-# resp=ec2c.terminate_instances(InstanceIds=[instid])
-# printlog(json.dumps(resp,indent=2,separators=(',',':')))
+resp=ec2c.stop_instances(InstanceIds=[instid])
+
+resp=ec2c.terminate_instances(InstanceIds=[instid])
+
+currentInstanceState = resp["TerminatingInstances"][0]["CurrentState"]["Name"]
+beforeInstanceState = resp["TerminatingInstances"][0]["PreviousState"]["Name"]
+
+print(banner("Stopping EC2 instance"))
+printlog("Instance has changed state from: ["+beforeInstanceState+"] to new state: ["+currentInstanceState+"]")

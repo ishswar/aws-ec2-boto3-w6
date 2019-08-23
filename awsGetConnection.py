@@ -14,7 +14,7 @@ def get_aws_connection():
         for bucket in s3.buckets.all():
             break;
 
-        print("Connection was successful");
+        print("Connection to AWS was successful");
         print('Python version: ' + sys.version)
         print('Boto3 version: ' + boto3.__version__)
 
